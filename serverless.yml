@@ -1,0 +1,63 @@
+service: aws-serverless-poc
+
+frameworkVersion: "3"
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  region: eu-central-1
+  environment:
+    TASKS_TABLE: ${self:service}-tasks-${sls:stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+        - dynamodb:Query
+        - dynamodb:Scan
+      Resource: !GetAtt TasksTable.Arn
+
+# Add package configuration
+package:
+  individually: true
+
+functions:
+  createTask:
+    handler: functions/createTask.handler
+    events:
+      - http:
+          path: tasks
+          method: post
+
+  getTask:
+    handler: functions/getTask.handler
+    events:
+      - http:
+          path: tasks/{id}
+          method: get
+
+  updateTask:
+    handler: functions/updateTask.handler
+    events:
+      - http:
+          path: tasks/{id}
+          method: put
+
+resources:
+  Resources:
+    TasksTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TASKS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
