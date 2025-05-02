@@ -8,6 +8,9 @@ A proof of concept using:
 - AWS Step Functions
 - TypeScript
 
+It's about sending and receiving data from one aws account to the other. 
+It's being used as a PoC of communications between various services in AWS.
+
 ## Setup
 
 1. Install dependencies:
