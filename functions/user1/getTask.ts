@@ -8,7 +8,6 @@ export const handler = async (
 ): Promise<APIGatewayProxyResult> => {
   try {
     const taskId = event.pathParameters?.id;
-    const requestBody = JSON.parse(event.body || "{}");
 
     if (!taskId) {
       return {
@@ -17,35 +16,31 @@ export const handler = async (
       };
     }
 
-    if (!requestBody.status) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ message: "Status is required" }),
-      };
-    }
-
-    // Update task status in DynamoDB
     const result = await dynamodb
-      .update({
+      .get({
         TableName: process.env.TASKS_TABLE!,
-        Key: {
-          id: taskId,
-        },
-        UpdateExpression: "set #status = :status, updatedAt = :updatedAt",
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":status": requestBody.status,
-          ":updatedAt": new Date().toISOString(),
-        },
-        ReturnValues: "ALL_NEW",
+        Key: { id: taskId },
       })
       .promise();
 
+    if (!result.Item) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ message: "Task not found" }),
+      };
+    }
+
+    // Only allow user-1 to access their own tasks directly through this endpoint
+    if (result.Item.owner !== "user-1") {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ message: "Not authorized to access this task" }),
+      };
+    }
+
     return {
       statusCode: 200,
-      body: JSON.stringify(result.Attributes),
+      body: JSON.stringify(result.Item),
     };
   } catch (error) {
     return {

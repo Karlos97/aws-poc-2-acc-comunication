@@ -1,16 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import * as AWS from "aws-sdk";
 import { v4 as uuidv4 } from "uuid";
+import { Task } from "../types";
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  createdAt: string;
-}
+const sqs = new AWS.SQS();
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -25,6 +19,8 @@ export const handler = async (
       description: requestBody.description,
       status: "pending",
       createdAt: new Date().toISOString(),
+      owner: "user-1", // Default owner is user-1
+      createdBy: "user-1", // Default creator is user-1
     };
 
     // Store in DynamoDB
